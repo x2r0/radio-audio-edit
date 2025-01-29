@@ -1,0 +1,27 @@
+# Ignore processed, uploaded, and temporary audio files
+edited/
+uploads/
+jingles/
+input/
+output/
+
+# Ignore common OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+
+# Ignore log files
+logs/
+*.log
+
+# Ignore temporary files
+*.tmp
+*.swp
+*.swo

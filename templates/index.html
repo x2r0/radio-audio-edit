@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Radio Show Editor - Async Queue</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    h2 { margin-top: 30px; }
+    table { border-collapse: collapse; margin-bottom: 20px; }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .upload-form {
+      margin-bottom: 30px;
+    }
+    #job-status-table th, #job-status-table td {
+      border: 1px solid #999;
+      padding: 6px 10px;
+    }
+    .status {
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+    }
+    .queued { background-color: #f0ad4e; }
+    .processing { background-color: #5bc0de; }
+    .done { background-color: #5cb85c; }
+    .error { background-color: #d9534f; }
+    .canceled { background-color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Radio Show Editor (Async)</h1>
+
+  <!-- Upload Form -->
+  <section class="upload-form">
+    <h2>Upload a New Show</h2>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+      <label for="file">Choose an audio file (mp3, wav, flac):</label><br/>
+      <input type="file" id="file" name="file" accept=".mp3,.wav,.flac" required />
+      <button type="submit">Upload</button>
+    </form>
+  </section>
+
+  <!-- Unprocessed Files -->
+  <section>
+    <h2>Uploaded (Unprocessed) Files</h2>
+    {% if uploaded_files %}
+      <table>
+        <tr><th>Filename</th><th>Action</th></tr>
+        {% for file in uploaded_files %}
+          <tr>
+            <td>{{ file }}</td>
+            <td><a href="{{ url_for('edit_form', filename=file) }}">Edit</a></td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p>No files uploaded yet.</p>
+    {% endif %}
+  </section>
+
+  <!-- Edited Files -->
+  <section>
+    <h2>Edited (Processed) Files</h2>
+    {% if edited_files %}
+      <table>
+        <tr><th>Filename</th><th>Action</th></tr>
+        {% for file in edited_files %}
+          <tr>
+            <td>{{ file }}</td>
+            <td>
+              <a href="{{ url_for('download_edited', filename=file) }}">Download</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p>No processed files yet.</p>
+    {% endif %}
+  </section>
+
+  <!-- Jingles -->
+  <section>
+    <h2>Jingles</h2>
+    {% if jingle_files %}
+      <ul>
+        {% for jf in jingle_files %}
+          <li>{{ jf }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No jingles found!</p>
+    {% endif %}
+  </section>
+
+  <!-- Job Status Table -->
+  <section>
+    <h2>Job Queue Status</h2>
+    <table id="job-status-table">
+      <thead>
+        <tr>
+          <th>Job ID</th>
+          <th>Filename</th>
+          <th>Status</th>
+          <th>Output File</th>
+          <th>Error</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="job-status-body">
+        <!-- Populated by JavaScript -->
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+  // Periodically poll /status to retrieve job info and update the table
+  function fetchJobStatus() {
+    fetch('/status')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.getElementById('job-status-body');
+        tbody.innerHTML = ""; // Clear table
+
+        data.forEach(job => {
+          const tr = document.createElement('tr');
+
+          // Job ID
+          const tdId = document.createElement('td');
+          tdId.textContent = job.job_id;
+          tr.appendChild(tdId);
+
+          // Filename
+          const tdFile = document.createElement('td');
+          tdFile.textContent = job.filename;
+          tr.appendChild(tdFile);
+
+          // Status
+          const tdStatus = document.createElement('td');
+          tdStatus.textContent = job.status;
+          tdStatus.classList.add('status', job.status);
+          tr.appendChild(tdStatus);
+
+          // Output File
+          const tdOutput = document.createElement('td');
+          if (job.output_filename && job.status === "done") {
+            // Link to download
+            const link = document.createElement('a');
+            link.href = '/download_edited/' + job.output_filename;
+            link.textContent = job.output_filename;
+            tdOutput.appendChild(link);
+          } else {
+            tdOutput.textContent = job.output_filename || "";
+          }
+          tr.appendChild(tdOutput);
+
+          // Error
+          const tdError = document.createElement('td');
+          tdError.textContent = job.error_message || "";
+          tr.appendChild(tdError);
+
+          // Action (Cancel)
+          const tdAction = document.createElement('td');
+          if (["queued", "processing"].includes(job.status)) {
+            const cancelLink = document.createElement('a');
+            cancelLink.href = '/cancel/' + job.job_id;
+            cancelLink.textContent = 'Cancel';
+            tdAction.appendChild(cancelLink);
+          }
+          tr.appendChild(tdAction);
+
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(err => console.log("Error fetching job status:", err));
+  }
+
+  // Poll every 3 seconds
+  setInterval(fetchJobStatus, 3000);
+  // Initial fetch on page load
+  fetchJobStatus();
+  </script>
+</body>
+</html>

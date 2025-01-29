@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Configure Edit Parameters</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    label { display: block; margin-bottom: 8px; }
+    input[type="text"], select {
+      width: 300px;
+      margin-bottom: 15px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Editing: {{ filename }}</h1>
+  <form action="/process" method="POST">
+    <!-- Hidden field to pass the filename -->
+    <input type="hidden" name="filename" value="{{ filename }}"/>
+
+    <label for="silence_thresh">Silence Threshold (dBFS):</label>
+    <input type="text" id="silence_thresh" name="silence_thresh" value="-50.0" />
+
+    <label for="target_lufs">Target LUFS:</label>
+    <input type="text" id="target_lufs" name="target_lufs" value="-12.0" />
+
+    <label for="intro_jingle">Intro Jingle:</label>
+    <select id="intro_jingle" name="intro_jingle">
+      <option value="RANDOM">RANDOM</option>
+      {% for jingle in jingle_files %}
+        <option value="{{ jingle }}">{{ jingle }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="outro_jingle">Outro Jingle:</label>
+    <select id="outro_jingle" name="outro_jingle">
+      <option value="RANDOM">RANDOM</option>
+      {% for jingle in jingle_files %}
+        <option value="{{ jingle }}">{{ jingle }}</option>
+      {% endfor %}
+    </select>
+
+    <br/><br/>
+    <button type="submit">Queue Job</button>
+  </form>
+</body>
+</html>
